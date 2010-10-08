@@ -1,0 +1,4 @@
+fshttpstream is a simple server 
+getting events from freeswitch 
+and pushing them to http stream clients
+
