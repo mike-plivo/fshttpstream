@@ -162,26 +162,25 @@ class FreeswitchEventServer(object):
     self.httpd_status = False
 
   def http_handle(self, sock, address):
-    self.logger.info("http request start from %s" % str(address))
+    self.logger.info("http request start %s" % str(address))
     try:
       self.__http_handle(sock, address)
-      self.logger.info("http request end from %s" % str(address))
+      self.logger.info("http request end %s" % str(address))
     except eventlet.StopServe:
       self.stop()
       raise eventlet.StopServe()
     except SystemExit:
       raise SystemExit()
     except socket.timeout:
-      self.logger.error("http socket timeout")
+      self.logger.error("http socket timeout %s" % str(address))
     except Exception, e:
-      self.logger.error("http request failure: %s" % e.message)
+      self.logger.error("http request failure %s: %s" % (str(address), e.message))
       [ self.logger.error(line) for line in traceback.format_exc().splitlines() ]
     return
 
   def __http_recv(self, sock):
     data = ''
     lines = 0
-    bytes = 0
     maxbytes = MAXLINES*8192
     while lines < MAXLINES:
       try:
@@ -202,13 +201,11 @@ class FreeswitchEventServer(object):
     return data
 
   def __http_response(self, httpcode, info, msg='', contenttype='text/plain'):
-    if msg:
-      length = len(msg)
-    else:
-      length = -1
+    if msg: length = len(msg)
+    else: length = -1
     resp = "HTTP/1.0 %s %s\r\n" % (str(httpcode), info)
     resp += "Date: %s\r\n" % (datetime.datetime.now().ctime())
-    resp += "Server: fseventd\r\n"
+    resp += "Server: fshttpstream\r\n"
     resp += "Expires: Sat, 1 Jan 2005 00:00:00\r\n";
     resp += "Last-Modified: %s\r\n" % (datetime.datetime.now().ctime())
     resp += "Cache-Control: no-cache, must-revalidate\r\n"
@@ -233,16 +230,22 @@ class FreeswitchEventServer(object):
     return (path, params)
 
   def __http_handle(self, sock, address):
+    # set a global timeout for http request (20 sec)
+    # if client request http stream, this timeout will be cancelled
     timer = eventlet.timeout.Timeout(20.0)
     try:
+      # get data from client
       data = self.__http_recv(sock)  
       if not data[:3] == 'GET':
         self.logger.error("http bad data: abort for %s" % str(address))
         return
 
+      # get path and query string from data
       path, params = self.__http_parse_request(data)
       self.logger.debug("http request for %s => path '%s'" % (str(address), str(path)))
       self.logger.debug("http request for %s => qs %s" % (str(address), str(params)))
+
+      # status : show clients connected and close connection
       if path == 'status':
         self.logger.info("http status for %s" % str(address))
         msg = 'Clients: %d%s' % (len(self.clients), EOL)
@@ -251,20 +254,22 @@ class FreeswitchEventServer(object):
         msg = self.__http_response(200, 'status', msg)
         sock.send(msg)
         return
+      # create new http stream client
       else:
-        c = fsclients.HttpCometClient(address, sock, params)
-        self.clients[address] = c
+        c = self._add_client(address, sock, params)
     except eventlet.timeout.Timeout:
       self.logger.error("http timeout getting data for %s" % str(address))
       return
     finally:
       timer.cancel()
 
+    # update last event time 
     last_event_t = datetime.datetime.now()
 
     # send ready response
     ready = self.__http_response(200, "OK")
     c.sock.send(ready+EOL)
+
     # clear/flush browser buffer
     try: c.send_event(fsevents.FlushBufferEvent())
     except: pass
@@ -300,36 +305,42 @@ class FreeswitchEventServer(object):
           last_event_t = datetime.datetime.now()
           if length1 == 0:
             self.logger.warn("http send nothing for %s: %s" % str(c.addr))
-            self.remove_client(c.addr)
+            self._remove_client(c.addr)
             return
         except eventlet.timeout.Timeout, te:
           self.logger.warn("http send event timeout reach for %s: %s" % (str(c.addr), te.message))
-          self.remove_client(c.addr)
+          self._remove_client(c.addr)
           return
         except socket.error, e1:
           self.logger.warn("http send event failure for %s: %s" % (str(c.addr), e1.message))
-          self.remove_client(c.addr)
+          self._remove_client(c.addr)
           return
         except socket.timeout, e2:
           self.logger.warn("http send event timeout for %s: %s" % (str(c.addr), e2.message))
-          self.remove_client(c.addr)
+          self._remove_client(c.addr)
           return
         except Exception, err:
           self.logger.error("http send event failure for %s: %s" % (str(c.addr), err.message))
           [ self.logger.error(line) for line in traceback.format_exc().splitlines() ]
-          self.remove_client(c.addr)
+          self._remove_client(c.addr)
           return
         finally:
           timer.cancel()
 
-  def remove_client(self, address):
+  def _add_client(self, address, sock, params):
+    c = fsclients.HttpStreamClient(address, sock, params)
+    self.clients[address] = c
+    self.logger.debug("httpstream client %s added" % str(address))
+    return c
+
+  def _remove_client(self, address):
     try: self.clients[address].sock.close()
     except: pass
     try:
       del self.clients[address]
-      self.logger.debug("client %s removed" % str(address))
+      self.logger.debug("httpstream client %s removed" % str(address))
     except KeyError, e:
-      self.logger.warn("cannot remove client %s (not found)" % str(address))
+      self.logger.warn("httpstream cannot remove client %s (not found)" % str(address))
 
   def eventd_start(self):
     if not self.event_connect():
