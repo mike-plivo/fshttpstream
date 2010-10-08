@@ -15,13 +15,6 @@ import fslogger
 import fsevents
 import fsclients
 
-'''
-TODO
-
-- TWEAK : notify http client when event handler is down ?
-- TWEAK : daemon mode/foreground mode
-- STRANGE : first event (flushbuffer) and no EOL after this one in browser (debug tcpdump)
-'''
 
 
 EOL = '\n\n'
@@ -248,7 +241,7 @@ class FreeswitchEventServer(object):
         return
 
       path, params = self.__http_parse_request(data)
-      self.logger.debug("http request for %s => path %s" % (str(address), str(path)))
+      self.logger.debug("http request for %s => path '%s'" % (str(address), str(path)))
       self.logger.debug("http request for %s => qs %s" % (str(address), str(params)))
       if path == 'status':
         self.logger.info("http status for %s" % str(address))
@@ -367,21 +360,18 @@ if __name__ == '__main__':
   httphost = '0.0.0.0'
   httpport = 8000
 
-  servicename = "fseventcc"
+  servicename = "fsexample"
 
-  mainfilter = 'CUSTOM callcenter::info'
+  # set no filter when connecting to mod_event_socket (ie: event plain all)
+  mainfilter = 'all'
 
-  fsfilters = (('CC-Action', 'member-queue-start'),
-               ('CC-Action', 'members-count'),
-               ('CC-Action', 'agent-state-change'),
-               ('CC-Action', 'bridge-agent-start'),
-               ('CC-Action', 'bridge-agent-end'),
-               ('CC-Action', 'member-queue-end'))
+  # no filter when connected
+  fsfilters = ()
 
-  # create logger
+  # create logger (syslog)
   logger = fslogger.SysLogger(servicename=servicename)
 
-  # create event handler
+  # create server
   server = FreeswitchEventServer(httphost, httpport, fshost, fsport, fspassword, 
                                  eventfilter=mainfilter, 
                                  filters=fsfilters,
