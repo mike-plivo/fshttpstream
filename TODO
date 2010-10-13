@@ -1,3 +1,5 @@
 - TWEAK : notify http client when event handler is down ?
 - TWEAK : daemon mode/foreground mode
-
+- TWEAK : add optparse options (standard options : user, group, http port, ...)
+- Need refactoring of events and filters
+- FEATURE : add websocket mode
