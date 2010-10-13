@@ -3,3 +3,4 @@
 - TWEAK : add optparse options (standard options : user, group, http port, ...)
 - Need refactoring of events and filters
 - FEATURE : add websocket mode
+- OPTIMIZE : get freeswitch events in json format not plain text to optimize parsing ?
