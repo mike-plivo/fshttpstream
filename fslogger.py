@@ -3,7 +3,7 @@ from logging import RootLogger
 
 
 class BaseLogger(object):
-  def __init__(self, loglevel=logging.DEBUG, servicename='fshttpstrem'):
+  def __init__(self, loglevel=logging.DEBUG, servicename='fshttpstream'):
     h = logging.StreamHandler()
     h.setLevel(loglevel)
     fmt = logging.Formatter("%(asctime)s "+servicename+"[%(process)d]: %(levelname)s: %(message)s")
