@@ -1,4 +1,6 @@
 import fshttpstream
+import fsevents
+import fslogger
 
 fshost = '127.0.0.1'
 fsport = 8021

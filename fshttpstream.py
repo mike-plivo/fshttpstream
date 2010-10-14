@@ -287,7 +287,7 @@ class FreeswitchEventServer(object):
       # check inactivity
       delta = (datetime.datetime.now()-last_event_t).seconds
       if delta > CHECKINACTIVITY:
-        #self.logger.debug("http inactivity sending ping to %s" % (str(c.addr)))
+        self.logger.debug("http inactivity sending ping to %s" % (str(c.addr)))
         ev = fsevents.PingEvent()
       if not ev:
         eventlet.sleep(0.01)

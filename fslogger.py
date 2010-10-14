@@ -3,7 +3,7 @@ from logging import RootLogger
 
 
 class BaseLogger(object):
-  def __init__(self, loglevel=logging.DEBUG, servicename='fseventd'):
+  def __init__(self, loglevel=logging.DEBUG, servicename='fshttpstream'):
     h = logging.StreamHandler()
     h.setLevel(loglevel)
     fmt = logging.Formatter("%(asctime)s "+servicename+"[%(process)d]: %(levelname)s: %(message)s")
@@ -104,7 +104,7 @@ class Syslog(logging.handlers.SysLogHandler):
 
 
 class SysLogger(BaseLogger):
-  def __init__(self, addr='/dev/log', syslogfacility="local0", loglevel=logging.DEBUG, servicename="fseventd"):
+  def __init__(self, addr='/dev/log', syslogfacility="local0", loglevel=logging.DEBUG, servicename="fshttpstream"):
     fac = Syslog.facility_names[syslogfacility]
     h = Syslog(address=addr, facility=fac)
     h.setLevel(loglevel)
