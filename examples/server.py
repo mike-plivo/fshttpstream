@@ -1,11 +1,6 @@
 import fshttpstream
-<<<<<<< HEAD:examples/server.py
 import fslogger
 import fsevents
-=======
-import fsevents
-import fslogger
->>>>>>> tmpbranch:examples/server.py
 
 fshost = '127.0.0.1'
 fsport = 8021
