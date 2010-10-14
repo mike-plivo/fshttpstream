@@ -1,4 +1,6 @@
 import fshttpstream
+import fslogger
+import fsevents
 
 fshost = '127.0.0.1'
 fsport = 8021
@@ -19,7 +21,8 @@ fsfilters = (('CC-Action', 'member-queue-start'),
              ('CC-Action', 'member-queue-end'))
 
 # create logger
-logger = fslogger.SysLogger(servicename=servicename)
+#logger = fslogger.SysLogger(servicename=servicename)
+logger = fslogger.BaseLogger(servicename=servicename)
 
 # create event handler
 server = fshttpstream.FreeswitchEventServer(httphost, httpport, fshost, fsport, fspassword,
