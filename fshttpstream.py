@@ -16,7 +16,6 @@ import fsevents
 import fsclients
 
 
-
 EOL = '\n\n'
 EOL2 = '\r\n\r\n'
 MAXLINES = 40
