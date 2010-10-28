@@ -1,4 +1,1 @@
-fshttpstream is a simple server 
-getting events from freeswitch 
-and pushing them to http stream clients
-
+Proxy to send freeswitch events to push http stream and/or websocket .

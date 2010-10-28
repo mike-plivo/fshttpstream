@@ -1,15 +1,6 @@
-- TWEAK : notify http client when event handler is down ?
-- TWEAK : daemon mode/foreground mode
-- TWEAK : add optparse options (standard options : user, group, http port, ...)
-- Need refactoring of events and filters
-- FEATURE : add websocket mode
-- OPTIMIZE : get freeswitch events in json format not plain text to optimize parsing ?
+# Tasks to be done 
 
-- BUG :
-    When using same url (with same query string) twice on same browser (Firefox 3/Chrome 6), only the first window take events, the second one is not connected :
-    http://vocaldev:8000/?CC-Agent=Agent%204871&CC-Queue=sales@default
-    http://vocaldev:8000/?CC-Agent=Agent%204871&CC-Queue=sales@default
+- Add daemon mode
 
-    If using url with differents query strings this is working ... :
-    http://vocaldev:8000/?CC-Agent=Agent%204871&CC-Queue=sales@default
-    http://vocaldev:8000/?CC-Agent=Agent%204871
+- Add file logger
+
