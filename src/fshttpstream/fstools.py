@@ -40,7 +40,7 @@ def do_daemon(uid, gid, serverpath=None, pidfile=None):
             print "Error : "+str(err)
             return False
         if pid == 0:
-            os.chdir(servicespath)
+            os.chdir(serverpath)
             os.umask(0)
             open(pidfile, "w").write(str(os.getpid()))
         else:
