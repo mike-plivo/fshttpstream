@@ -2,78 +2,78 @@
 <html>
 <head>
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js"></script>
-  <script src="httpstream.js"></script>
-  <script src="filters.js"></script>
+  <script src="fshttpstream.js"></script>
   <script>
-    /* address : host:port to be used when connecting to fshttpstream server example
-       NOTE : browsers deny cross-domain !!!
-       If your browser contact fshttpstream server by http://mydomain.com:8081/
-       you need to set : 
-           var address = "mydomain.com:8081";
-    */ 
-    var address = "127.0.0.1:8081";
+    /* HOST/PORT
+    host and port to be used when connecting to fshttpstream server example
 
-    /*
+    NOTE : browsers deny cross-domain !!!
+    If your browser contact fshttpstream server by http://mydomain.com:8081/
+    you need to set : 
+        var host = "mydomain.com";
+        var port = "8081";
+    */ 
+    var host = "127.0.0.1";
+    var port = "8081";
+
+
+    /* FILTERS
     make a filter (a filter IN) for this client :
       drop all events except those matching regexp list
     */
-    var filter = "";
-    // uncomment this line below to only catch RE_SCHEDULE events from freeswitch
-    //var filter = makeFilter(["Event-Name: RE_SCHEDULE(.*)Event-Calling-Function: switch_scheduler_execute"
-                           ]);
+    var filters = [];
+    // for example, uncomment the line below to only catch RE_SCHEDULE events from freeswitch
+    //var filters = ["Event-Name: RE_SCHEDULE(.*)Event-Calling-Function: switch_scheduler_execute"];
 
-    window.onload = function() {
-      function onMessage(data) {
-        ev = jQuery.parseJSON(data);
-        action = ev['Event-Name'];
-        if (ev['Event-Date-Local']) {
-          action = action + " - " + ev['Event-Date-Local'];
-        }
-        $("#events").append("<div>");
-        $("#events").append("<p style=\"border-left: 5px solid #865d23; padding-left:2px; color:#453528; padding: 1px; background-color: #c4946e; font-weight:bold; display:block; width:60%; margin-bottom:0;\">Action &nbsp;" + action + "</p>");
-        $("#events").append("<p style=\"border-left: 5px solid #865d23; padding-left:2px; display:block; background-color:#e1c6b0; color:#4a301b; width:80%; margin-top:0; padding: 5px; font-style: italic;\">" + data + "</p>");
-        $("#events").append("</div>");
-        $("#events").scrollTop($("#events")[0].scrollHeight);
-      }; 
 
-      function onOpen() {
-        $("#status").html("Connection READY !");
-      };
+    /* CALLBACKS
+    prepare callbacks functions for onopen, onmessage, onclose events 
+    */
 
-      function onClose() {
-        $("#status").html("Connection CLOSED !");
-      };
-
-      // if websocket not supported, fallback to http stream
-      if (!window.WebSocket) {
-        $("#fstitle").html('Freeswitch Events (HttpStream mode)');
-        var url = "http://" + address + "/stream?" + filter; 
-        var sock = new HttpStream(url, onMessage, onOpen, onClose);
-
-      } else { 
-      // websocket mode
-        $("#fstitle").html('Freeswitch Events (WebSocket mode)');
-        var url = "ws://" + address + "/websock?" + filter; 
-        var sock = new WebSocket(url);
-        sock.onmessage = function(e) {
-          onMessage(e.data);
-        };
-        sock.onopen = function(e) {
-          onOpen();
-        };
-        sock.onclose = function(e) {
-          onClose();
-        };
+    function onMessage(fsobj, data) {
+      ev = jQuery.parseJSON(data);
+      action = ev['Event-Name'];
+      if (!action) {
+        return;
       }
+      if (ev['Event-Date-Local']) {
+        action = action + " - " + ev['Event-Date-Local'];
+      }
+      $("#events").append("<div>");
+      $("#events").append("<p style=\"border-left: 5px solid #865d23; padding-left:2px; color:#453528; padding: 1px; background-color: #c4946e; font-weight:bold; display:block; width:60%; margin-bottom:0;\">Action &nbsp;" + action + "</p>");
+      $("#events").append("<p style=\"border-left: 5px solid #865d23; padding-left:2px; display:block; background-color:#e1c6b0; color:#4a301b; width:80%; margin-top:0; padding: 5px; font-style: italic;\">" + data + "</p>");
+      $("#events").append("</div>");
+      $("#events").scrollTop($("#events")[0].scrollHeight);
+    }; 
+
+    function onOpen(fsobj) {
+      $("#status").html("Connection UP - " + fsobj.getAddress());
     };
+
+    function onClose(fsobj) {
+      $("#status").html("Connection DOWN");
+    };
+
+
+    /* CONNECT
+    connect when dom is ready 
+    */
+    $(document).ready(function() {
+      var fs = new FSHttpStream(host, port, onMessage, onOpen, onClose, filters);
+      $("#fstitle").html('Freeswitch Events - ' + fs.getStringMode());
+      $("#filter").html("Filter : "+fs.getStringFilters());
+    });
+
   </script>
 </head>
 
 <body style="background-color:#453528; color:white;">
-  <h3 id="fstitle">Freeswitch Events is not supported in your browser !</h3>
+  <h3 id="fstitle">Freeswitch Events</h3>
   <hr/>
   <h4 id="status">Connection DOWN</h4>
+  <h4 id="filter"></h4>
   <hr/>
   <div id="events" style="overflow:auto; width:90%; height:400px; margin-left:1%;"></div>
 </body>
 </html>
+
