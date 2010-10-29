@@ -10,10 +10,13 @@ from eventlet import websocket
 from eventlet.green import os
 from eventlet.green import socket
 import traceback
+import signal
+import sys
 
 import fslogger
 import fsevents
 import fsclients
+import fstools
 
 
 CHECK_INACTIVITY = 20
@@ -190,7 +193,8 @@ class HttpProtocol(OriginalHttpProtocol):
 
 
 class Server(object):
-    def __init__(self, host, port, fsconnector, log=None, docroot='./'):
+    def __init__(self, host, port, fsconnector, log=None, docroot='./', 
+                 daemon=False, pidfile=None, user=None, group=None):
         self.addr = (host, port)
         self.connector = fsconnector
         if not log: self.log = fslogger.BasicLogger()
@@ -198,11 +202,23 @@ class Server(object):
         self.status = False
         self.clients = set()
         self.docroot = docroot
+        self.daemon = daemon
+        self.pidfile = pidfile
+        if not user: 
+            self.uid = fstools.get_uid()
+        else:
+            self.uid = fstools.user2uid(user)
+        if not group: 
+            self.gid = fstools.get_gid()
+        else:
+            self.gid = fstools.grp2gid(group)
+        self.__init_signals()
 
     def get_docroot(self):
         return self.docroot
 
     def handle_events(self):
+        self.connector.set_logger(self.log)
         self.connector.start()
         while self.status:
             raw_event = self.connector.wait_event()
@@ -211,7 +227,7 @@ class Server(object):
     def __dispatch_events(self, raw_event):
         try:
             ev = fsevents.Event(raw_event)
-            self.log.debug("%s" % str(ev)) 
+            self.log.info("%s" % str(ev)) 
         except Exception, e:
             self.log.error(e.message)
         for c in self.clients:
@@ -222,7 +238,13 @@ class Server(object):
                 [ self.log.error(line) for line in traceback.format_exc().splitlines() ]
 
     def start(self):
+        if self.daemon:
+            fstools.do_daemon(self.uid, self.gid, self.docroot, self.pidfile)
+        else:
+            fstools.do_foreground(self.uid, self.gid, self.docroot)
+
         self.status = True
+
         try:
             eventlet.spawn_n(self.handle_events)
         except:
@@ -350,3 +372,23 @@ class Server(object):
                 start_response('500 Internal server error', [('content-type', 'text/html')])
                 [ self.log.warn(line) for line in traceback.format_exc().splitlines() ]
                 return ["<h1>Internal server error</h1>"]
+
+    def stop(self):
+        sys.exit(0)
+
+    def __init_signals(self):
+        signal.signal(signal.SIGTERM, self.__sighandler)
+        signal.signal(signal.SIGUSR1, self.__sighandler)
+        signal.signal(signal.SIGUSR2, self.__sighandler)
+
+    def __sighandler(self, signum, frame):
+        if signum == signal.SIGTERM:
+            self.log.warn("stopping now")
+            self.stop()
+        elif signum == signal.SIGUSR1:
+            self.log.warn("set loglevel INFO")
+            self.log.set_info()
+        elif signum == signal.SIGUSR2:
+            self.log.warn("set loglevel DEBUG")
+            self.log.set_debug()
+

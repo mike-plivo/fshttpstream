@@ -53,5 +53,5 @@ class PingEvent(Event):
 class FlushBufferEvent(Event):
     def __init__(self):
         Event.__init__(self, raw_event='Event-Name: FlushBuffer\r\nEvent-Date-Local: %s\r\nFlush-Buffer-Brower: %s\r\n' \
-                       % (urllib.quote_plus(localdate()), 'X'*1024)
+                       % (urllib.quote_plus(localdate()), 'X'*1024))
 

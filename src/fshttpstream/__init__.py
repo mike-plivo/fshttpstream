@@ -10,5 +10,6 @@ __all__ = ['fsclients',
            'fsevents',
            'fsfilter',
            'fslogger',
+           'fstools',
            'fswsgi']
 

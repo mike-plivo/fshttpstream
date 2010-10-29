@@ -15,6 +15,9 @@ class EventConnector(object):
         if not log: self.log = fslogger.BasicLogger()
         else: self.log = log
 
+    def set_logger(self, log):
+        self.log = log
+
     def start(self):
         return self.connect()
 

@@ -2,14 +2,33 @@ import logging.handlers
 from logging import RootLogger
 
 
+LOG_DEBUG = logging.DEBUG
+LOG_ERROR = logging.ERROR
+LOG_INFO = logging.INFO
+LOG_WARN = logging.WARN
+LOG_WARNING = logging.WARNING
+LOG_CRITICAL = logging.CRITICAL
+LOG_FATAL = logging.FATAL
+LOG_NOTSET = logging.NOTSET
+
+
 class BasicLogger(object):
-    def __init__(self, loglevel=logging.DEBUG, servicename='fshttpstream'):
+    def __init__(self, loglevel=LOG_DEBUG, servicename='fshttpstream'):
+        self.loglevel = loglevel
         h = logging.StreamHandler()
         h.setLevel(loglevel)
         fmt = logging.Formatter("%(asctime)s "+servicename+"[%(process)d]: %(levelname)s: %(message)s")
         h.setFormatter(fmt)
         self._logger = RootLogger(loglevel)
         self._logger.addHandler(h)
+
+    def set_debug(self):
+        self.loglevel = LOG_DEBUG
+        self._logger.setLevel(self.loglevel)
+        
+    def set_info(self):
+        self.loglevel = LOG_INFO
+        self._logger.setLevel(self.loglevel)
 
     def info(self, msg):
         self._logger.info(str(msg))
@@ -25,6 +44,7 @@ class BasicLogger(object):
 
     def write(self, msg):
         self.info(msg)
+
 
 class Syslog(logging.handlers.SysLogHandler):
     LOG_EMERG     = 0       #  system is unusable
@@ -106,7 +126,7 @@ class Syslog(logging.handlers.SysLogHandler):
 
 
 class SysLogger(BasicLogger):
-    def __init__(self, addr='/dev/log', syslogfacility="local0", loglevel=logging.DEBUG, servicename="fshttpstream"):
+    def __init__(self, addr='/dev/log', syslogfacility="local0", loglevel=LOG_DEBUG, servicename="fshttpstream"):
         fac = Syslog.facility_names[syslogfacility]
         h = Syslog(address=addr, facility=fac)
         h.setLevel(loglevel)
@@ -114,3 +134,14 @@ class SysLogger(BasicLogger):
         h.setFormatter(fmt)
         self._logger = RootLogger(loglevel)
         self._logger.addHandler(h)
+
+
+class FileLogger(BasicLogger):
+    def __init__(self, logfile='/tmp/fshttpstream.log', loglevel=LOG_DEBUG, servicename="fshttpstream"):
+        h = logging.FileHandler(filename=logfile)
+        h.setLevel(loglevel)
+        fmt = logging.Formatter("%(asctime)s "+servicename+"[%(process)d]: %(levelname)s: %(message)s")
+        h.setFormatter(fmt)
+        self._logger = RootLogger(loglevel)
+        self._logger.addHandler(h)
+
