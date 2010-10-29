@@ -59,9 +59,6 @@ class Client(object):
         return {}
 
 
-
-
-
 class WebSocketClient(Client):
     def __init__(self, ws):
         Client.__init__(self)
@@ -70,14 +67,12 @@ class WebSocketClient(Client):
         filters = self._get_filters_from_qs(self.__ws.environ)
         for f in filters:
             self.get_filter().add_filter(f)
-          
 
     def __str__(self):
         return 'WebSocketClient ' + self.uuid
 
     def send(self, msg):
         return self.__ws.send(msg.get_json())
-
 
 
 class HttpStreamClient(Client):
@@ -87,6 +82,7 @@ class HttpStreamClient(Client):
         Client.__init__(self)
         self.__environ = environ
         self.__sock = self.__environ['eventlet.input'].get_socket()
+        self.__sockfd = self.__sock.makefile()
         self.host = self.__environ['REMOTE_ADDR']
         filters = self._get_filters_from_qs(self.__environ)
         for f in filters:
@@ -98,7 +94,7 @@ class HttpStreamClient(Client):
 
     def send(self, msg):
         self.__sock.sendall(msg.get_json() + self.EOL)
-        self.__sock.makefile().flush()
+        self.__sockfd.flush()
 
     def __send_headers(self):
         self.__sock.sendall('"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: -1\r\nDate: Tue, 01 Jan 1970 00:00:00 GMT\r\nConnection: keep-alive\r\nPragma: no-cache\r\n\r\n')

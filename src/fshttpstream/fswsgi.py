@@ -190,7 +190,7 @@ class HttpProtocol(OriginalHttpProtocol):
 
 
 class Server(object):
-    def __init__(self, host, port, fsconnector, log=None, docroot='web'):
+    def __init__(self, host, port, fsconnector, log=None, docroot='./'):
         self.addr = (host, port)
         self.connector = fsconnector
         if not log: self.log = fslogger.BasicLogger()
@@ -211,6 +211,7 @@ class Server(object):
     def __dispatch_events(self, raw_event):
         try:
             ev = fsevents.Event(raw_event)
+            self.log.debug("%s" % str(ev)) 
         except Exception, e:
             self.log.error(e.message)
         for c in self.clients:
@@ -235,7 +236,6 @@ class Server(object):
             raise
         server(self.sock, self.handle, protocol=HttpProtocol, log=self.log)
         self.status = False
-
 
     def handle_websocket(self, environ, start_response):
         wsock = websocket.WebSocketWSGI(self._handle_websocket)

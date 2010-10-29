@@ -69,7 +69,7 @@ class EventConnector(object):
                 break
             else:
                 eventlet.sleep(0.002)
-        self.log.debug("fsconnector - recv %s" % str(data.splitlines()))
+        self.log.debug("fsconnector - %s" % str(data.splitlines()))
         if not 'Reply-Text: +OK' in data:
             self.log.warn("fsconnector - failure %s" % msg)
             return False
@@ -83,7 +83,7 @@ class EventConnector(object):
                 data += self.sock.recv(1)
                 if data[-2:] == EOL:
                     if 'Event-Name:' in data:
-                        self.log.debug("fsconnector - recv %s" % str(data.splitlines()))
+                        self.log.debug("fsconnector - event => %s" % str(data.splitlines()))
                         return data
                 elif data == '':
                     self.log.warn("fsconnector - handler error: buffer empty, fs probably down !")
