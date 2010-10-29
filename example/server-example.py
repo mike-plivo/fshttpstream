@@ -16,7 +16,6 @@ connector = fsconnector.EventConnector('127.0.0.1', 8021, 'ClueCon', filter)
 
 # create server and start foreground, logging to stdout
 server = fswsgi.Server('0.0.0.0', 8081, connector, docroot='./')
-print dir(server.log)
 server.start()
 
 

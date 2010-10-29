@@ -85,9 +85,7 @@ class EventConnector(object):
             try:
                 data += self.sock.recv(1)
                 if data[-2:] == EOL:
-                    if 'Event-Name:' in data:
-                        self.log.debug("fsconnector - event => %s" % str(data.splitlines()))
-                        return data
+                    return data
                 elif data == '':
                     self.log.warn("fsconnector - handler error: buffer empty, fs probably down !")
                     return None
