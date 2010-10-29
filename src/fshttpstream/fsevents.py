@@ -46,12 +46,12 @@ class Event(object):
 
 class PingEvent(Event):
     def __init__(self):
-        Event.__init__(self, raw_event='Event-Name: Ping\r\nEvent-Date-Local: %s\r\n' \
+        Event.__init__(self, raw_event='Server-Event-Name: Ping\r\nEvent-Date-Local: %s\r\n' \
                        % urllib.quote_plus(localdate()))
 
 
 class FlushBufferEvent(Event):
     def __init__(self):
-        Event.__init__(self, raw_event='Event-Name: FlushBuffer\r\nEvent-Date-Local: %s\r\nFlush-Buffer-Brower: %s\r\n' \
+        Event.__init__(self, raw_event='Server-Event-Name: FlushBuffer\r\nEvent-Date-Local: %s\r\nFlush-Buffer-Brower: %s\r\n' \
                        % (urllib.quote_plus(localdate()), 'X'*1024))
 
