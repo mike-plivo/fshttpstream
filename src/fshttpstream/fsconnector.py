@@ -59,7 +59,7 @@ class EventConnector(object):
             except: pass
             return False
         for f in self.filter.get_filters():
-            self.__command('filter '+filter)
+            self.__command('filter '+f)
         return True
 
     def __command(self, msg):
