@@ -230,7 +230,8 @@ class Server(object):
 
     def handle_events(self):
         self.connector.set_logger(self.log)
-        self.connector.start()
+        while not self.connector.start():
+            gevent.sleep(2.0)
         while self.status:
             raw_event = self.connector.wait_event()
             self.__dispatch_events(raw_event)
