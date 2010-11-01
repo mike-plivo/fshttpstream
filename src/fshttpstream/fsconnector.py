@@ -22,34 +22,33 @@ class EventConnector(object):
         return self.connect()
 
     def connect(self):
-        while True:
-            self.log.info("fsconnector - connecting to %s %s" % (self.password, str(self.addr)))
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.settimeout(20.0)
-            timer = gevent.Timeout(20.0)
-            try:
-                self.sock.connect(self.addr)
-                self.fd = self.sock.makefile()
-                data = self.sock.recv(1024)
-                if not self.__command('auth %s' % self.password):
-                    self.sock.close()
-                    self.log.error("fsconnector - auth failure")
-                    return False
-                self.log.info("fsconnector - auth success")
-                res = self.__set_filter()
-                if res:
-                    self.log.info("fsconnector - connected")
-                    self.running = True
-                    return res
-            except gevent.Timeout, te:
-                self.log.error("fsconnector - handler timeout")
-            except socket.timeout, se:
-                self.log.error("fsconnector - handler timeout")
-            except socket.error, e:
-                self.log.error("fsconnector - handler failure")
-            finally:
-                self.sock.settimeout(None)
-                timer.cancel()
+        self.log.info("fsconnector - connecting to %s %s" % (self.password, str(self.addr)))
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.settimeout(20.0)
+        timer = gevent.Timeout(20.0)
+        try:
+            self.sock.connect(self.addr)
+            self.fd = self.sock.makefile()
+            data = self.sock.recv(1024)
+            if not self.__command('auth %s' % self.password):
+                self.sock.close()
+                self.log.error("fsconnector - auth failure")
+                return False
+            self.log.info("fsconnector - auth success")
+            res = self.__set_filter()
+            if res:
+                self.log.info("fsconnector - connected")
+                self.running = True
+                return res
+        except gevent.Timeout, te:
+            self.log.error("fsconnector - handler timeout")
+        except socket.timeout, se:
+            self.log.error("fsconnector - handler timeout")
+        except socket.error, e:
+            self.log.error("fsconnector - handler failure")
+        finally:
+            self.sock.settimeout(None)
+            timer.cancel()
         return False
 
     def __set_filter(self):
