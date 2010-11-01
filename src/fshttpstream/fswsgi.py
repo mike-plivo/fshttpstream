@@ -1,6 +1,7 @@
 import datetime
+'''
 import eventlet
-from eventlet.green import time
+import eventlet.green import time
 from eventlet.wsgi import HttpProtocol as OriginalHttpProtocol
 from eventlet.wsgi import _AlreadyHandled
 from eventlet.wsgi import MINIMUM_CHUNK_SIZE
@@ -9,18 +10,28 @@ from eventlet.wsgi import server as ev_server
 from eventlet import websocket
 from eventlet.green import os
 from eventlet.green import socket
+'''
+
+import gevent.socket as socket
+import gevent.monkey
+import gevent.queue
+from gevent import wsgi
+
 import traceback
 import signal
 import sys
+import os
 
 import fslogger
 import fsevents
 import fsclients
 import fstools
 
+gevent.monkey.patch_all()
 
 CHECK_INACTIVITY = 20
 
+'''
 # wrap eventlet.wsgi.server to ev_server
 server = ev_server
 
@@ -189,7 +200,7 @@ class HttpProtocol(OriginalHttpProtocol):
                 status_code=status_code[0],
                 body_length=length[0],
                 wall_seconds=finish - start))
-
+'''
 
 
 class Server(object):
@@ -246,10 +257,16 @@ class Server(object):
         self.status = True
 
         try:
-            eventlet.spawn_n(self.handle_events)
+            gevent.spawn(self.handle_events)
         except:
             self.status = False
             raise
+
+
+        self.log.info("http - start %s" % str(self.addr))
+        server = wsgi.WSGIServer(self.addr, self.handle)
+        server.serve_forever()
+        '''
         try:
             self.log.info("http - start %s" % str(self.addr))
             self.sock = eventlet.listen(self.addr)
@@ -257,6 +274,7 @@ class Server(object):
             self.status = False
             raise
         server(self.sock, self.handle, protocol=HttpProtocol, log=self.log)
+        '''
         self.status = False
 
     def handle_websocket(self, environ, start_response):
@@ -277,13 +295,13 @@ class Server(object):
                         self.log.debug("ping client %s" % str(client))
                         client.send(fsevents.PingEvent())
                         last_event = now
-                        eventlet.sleep(0.02)
+                        gevent.sleep(0.02)
                         continue
                     ev = client.get_event()
                     last_event = datetime.datetime.now()
                     client.send(ev)
-                except eventlet.queue.Empty:
-                    eventlet.sleep(0.02)
+                except gevent.queue.Empty:
+                    gevent.sleep(0.02)
                 except socket.error, e:
                     self.log.warn("client %s socket error: %s" % (str(client), str(e)))
                     return
@@ -312,19 +330,19 @@ class Server(object):
                         [ client.send(fsevents.FlushBufferEvent()) for x in range(20) ]
                         last_event = now
                         do_flush = False
-                        eventlet.sleep(0.02)
+                        gevent.sleep(0.02)
                         continue
                     if (now-last_event).seconds >= CHECK_INACTIVITY:
                         self.log.debug("ping client %s" % str(client))
                         client.send(fsevents.PingEvent())
                         last_event = now
-                        eventlet.sleep(0.02)
+                        gevent.sleep(0.02)
                         continue
                     ev = client.get_event()
                     last_event = datetime.datetime.now()
                     client.send(ev)
-                except eventlet.queue.Empty:
-                    eventlet.sleep(0.02)
+                except gevent.queue.Empty:
+                    gevent.sleep(0.02)
                 except socket.error, e:
                     self.log.warn("client %s socket error: %s" % (str(client), str(e)))
                     return

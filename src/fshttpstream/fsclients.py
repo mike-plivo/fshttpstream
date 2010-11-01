@@ -1,12 +1,13 @@
-import datetime
-import uuid
-import eventlet.queue
-from eventlet.green import urllib
+import gevent.queue
+import gevent.monkey
+
+gevent.monkey.patch_all()
+
 try: from urlparse import parse_qs as parse_qs
 except: from cgi import parse_qs as parse_qs
-
+import datetime
+import uuid
 import fsfilter
-
 
 class Client(object):
     def __init__(self):
@@ -14,7 +15,7 @@ class Client(object):
         self.host = ''
         self.uuid = str(uuid.uuid4())
         self.__filter = fsfilter.ClientFilter()
-        self.__queue = eventlet.queue.LightQueue()
+        self.__queue = gevent.queue.Queue()
 
     def get_filter(self):
         return self.__filter
@@ -23,7 +24,7 @@ class Client(object):
         ev =  self.__queue.get_nowait()
         if self.get_filter().event_match(ev):
             return ev
-        raise eventlet.queue.Empty
+        raise gevent.queue.Empty
 
     def push_event(self, ev):
         return self.__queue.put_nowait(ev)
@@ -81,7 +82,7 @@ class HttpStreamClient(Client):
     def __init__(self, environ):
         Client.__init__(self)
         self.__environ = environ
-        self.__sock = self.__environ['eventlet.input'].get_socket()
+        self.__sock = self.__environ['gevent.input'].get_socket()
         self.__sockfd = self.__sock.makefile()
         self.host = self.__environ['REMOTE_ADDR']
         filters = self._get_filters_from_qs(self.__environ)

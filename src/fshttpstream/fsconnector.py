@@ -1,5 +1,5 @@
-import eventlet
-from eventlet.green import socket
+import gevent
+import gevent.socket as socket
 import fslogger
 import fsfilter
 
@@ -26,7 +26,7 @@ class EventConnector(object):
             self.log.info("fsconnector - connecting to %s %s" % (self.password, str(self.addr)))
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.sock.settimeout(20.0)
-            timer = eventlet.timeout.Timeout(20.0)
+            timer = gevent.Timeout(20.0)
             try:
                 self.sock.connect(self.addr)
                 data = self.sock.recv(1024)
@@ -40,7 +40,7 @@ class EventConnector(object):
                     self.log.info("fsconnector - connected")
                     self.running = True
                     return res
-            except eventlet.timeout.Timeout, te:
+            except gevent.Timeout, te:
                 self.log.error("fsconnector - handler timeout")
             except socket.timeout, se:
                 self.log.error("fsconnector - handler timeout")
@@ -49,7 +49,7 @@ class EventConnector(object):
             finally:
                 self.sock.settimeout(None)
                 timer.cancel()
-            eventlet.sleep(2.0)
+            gevent.sleep(2.0)
         return False
 
     def __set_filter(self):
@@ -71,7 +71,7 @@ class EventConnector(object):
             if data[-2:] == EOL:
                 break
             else:
-                eventlet.sleep(0.002)
+                gevent.sleep(0.002)
         self.log.debug("fsconnector - %s" % str(data.splitlines()))
         if not 'Reply-Text: +OK' in data:
             self.log.warn("fsconnector - failure %s" % msg)
@@ -100,6 +100,6 @@ class EventConnector(object):
         raw_event = self.__get_event()
         if not raw_event:
             self.connect()
-            eventlet.sleep(2.0)
+            gevent.sleep(2.0)
         else:
             return raw_event
