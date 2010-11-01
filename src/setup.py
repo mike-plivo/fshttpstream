@@ -15,7 +15,7 @@ setup(name='fshttpstream',
       long_description='Proxy to send freeswitch events to push http stream and/or websocket.',
       packages=['fshttpstream'],
       license=__licence__,
-      install_requires=['eventlet >= 0.9.2'],
+      install_requires=['gevent'],
       zip_safe=False,
       classifiers=[
         "License :: OSI Approved :: GNU Library or Lesser General Public License (LGPL)",
