@@ -50,7 +50,6 @@ class EventConnector(object):
             finally:
                 self.sock.settimeout(None)
                 timer.cancel()
-            gevent.sleep(2.0)
         return False
 
     def __set_filter(self):
@@ -100,7 +99,7 @@ class EventConnector(object):
     def wait_event(self):
         raw_event = self.__get_event()
         if not raw_event:
-            self.connect()
-            gevent.sleep(2.0)
+            while not self.connect():
+                gevent.sleep(2.0)
         else:
             return raw_event
