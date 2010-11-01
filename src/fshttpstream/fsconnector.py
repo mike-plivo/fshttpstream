@@ -29,6 +29,7 @@ class EventConnector(object):
             timer = gevent.Timeout(20.0)
             try:
                 self.sock.connect(self.addr)
+                self.fd = self.sock.makefile()
                 data = self.sock.recv(1024)
                 if not self.__command('auth %s' % self.password):
                     self.sock.close()
@@ -83,7 +84,7 @@ class EventConnector(object):
         data = ''
         while True:
             try:
-                data += self.sock.recv(1)
+                data += self.fd.readline()
                 if data[-2:] == EOL:
                     return data
                 elif data == '':
