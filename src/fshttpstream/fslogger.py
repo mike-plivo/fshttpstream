@@ -1,3 +1,7 @@
+import gevent.monkey
+
+gevent.monkey.patch_all()
+
 import logging.handlers
 from logging import RootLogger
 
