@@ -134,11 +134,11 @@ function FSHttpStream(host, port, onMessage, onOpen, onClose, filters) {
 
   this.filter = new ClientEventFilter(filters);
 
-  if (!window.WebSocket) {
+  //if (!window.WebSocket) {
     this.mode = 1;
     this.url = "http://" + this.address + "/stream" + this.filter.getEncodedFilters();
     this.sock = new HttpStream(this, this.url, this.onMessage, this.onOpen, this.onClose);
-  } else {
+  /*} else {
     this.mode = 2;
     this.ws_state = 0;
     this.url = "ws://" + this.address + "/websock" + this.filter.getEncodedFilters(); 
@@ -154,7 +154,7 @@ function FSHttpStream(host, port, onMessage, onOpen, onClose, filters) {
       this.ws_state = 0;
       this.onClose(this);
     });
-  }
+  }*/
 }
 
 FSHttpStream.prototype.Bind = function(func) {

@@ -1,13 +1,14 @@
-import gevent.queue
 import gevent.monkey
-
 gevent.monkey.patch_all()
+import gevent.queue
 
 try: from urlparse import parse_qs as parse_qs
 except: from cgi import parse_qs as parse_qs
+import urllib
 import datetime
 import uuid
 import fsfilter
+
 
 class Client(object):
     def __init__(self):
@@ -61,11 +62,12 @@ class Client(object):
 
 
 class WebSocketClient(Client):
-    def __init__(self, ws):
+    def __init__(self, ws, environ):
         Client.__init__(self)
         self.__ws = ws
-        self.host = self.__ws.environ['REMOTE_ADDR']
-        filters = self._get_filters_from_qs(self.__ws.environ)
+        self.__environ = environ
+        self.host = self.__environ['REMOTE_ADDR']
+        filters = self._get_filters_from_qs(self.__environ)
         for f in filters:
             self.get_filter().add_filter(f)
 
@@ -82,7 +84,7 @@ class HttpStreamClient(Client):
     def __init__(self, environ):
         Client.__init__(self)
         self.__environ = environ
-        self.__sock = self.__environ['gevent.input'].get_socket()
+        self.__sock = self.__environ['gevent.socket']
         self.__sockfd = self.__sock.makefile()
         self.host = self.__environ['REMOTE_ADDR']
         filters = self._get_filters_from_qs(self.__environ)
@@ -94,8 +96,10 @@ class HttpStreamClient(Client):
         return 'HttpStreamClient ' + self.uuid
 
     def send(self, msg):
-        self.__sock.sendall(msg.get_json() + self.EOL)
+        self.__sockfd.write(msg.get_json() + self.EOL)
         self.__sockfd.flush()
 
     def __send_headers(self):
-        self.__sock.sendall('"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: -1\r\nDate: Tue, 01 Jan 1970 00:00:00 GMT\r\nConnection: keep-alive\r\nPragma: no-cache\r\n\r\n')
+        self.__sockfd.write('"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: -1\r\nDate: Tue, 01 Jan 1970 00:00:00 GMT\r\nConnection: keep-alive\r\nPragma: no-cache\r\n\r\n')
+        self.__sockfd.flush()
+

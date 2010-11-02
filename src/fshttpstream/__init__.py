@@ -1,6 +1,8 @@
 '''
 fshttpstream package
 '''
+import gevent.monkey
+gevent.monkey.patch_all()
 
 __version__ = '0.2.2'
 

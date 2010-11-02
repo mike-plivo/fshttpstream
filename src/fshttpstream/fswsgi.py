@@ -1,206 +1,94 @@
-import datetime
-'''
-import eventlet
-import eventlet.green import time
-from eventlet.wsgi import HttpProtocol as OriginalHttpProtocol
-from eventlet.wsgi import _AlreadyHandled
-from eventlet.wsgi import MINIMUM_CHUNK_SIZE
-from eventlet.wsgi import format_date_time
-from eventlet.wsgi import server as ev_server
-from eventlet import websocket
-from eventlet.green import os
-from eventlet.green import socket
-'''
+import gevent.monkey
+gevent.monkey.patch_all()
 
 import gevent.socket as socket
-import gevent.monkey
 import gevent.queue
-from gevent import wsgi
+from gevent import pywsgi
+from gevent.pywsgi import Input
+#from geventwebsocket.websocket import WebSocket
 
 import traceback
+import mimetools
 import signal
+import datetime
 import sys
 import os
+from urllib import quote
+from urllib import unquote
 
 import fslogger
 import fsevents
 import fsclients
 import fstools
 
-gevent.monkey.patch_all()
 
 CHECK_INACTIVITY = 20
 
-'''
-# wrap eventlet.wsgi.server to ev_server
-server = ev_server
 
-
-class HttpProtocol(OriginalHttpProtocol):
+class WSGIHandler(pywsgi.WSGIHandler):
     protocol_version = 'HTTP/1.1'
-    minimum_chunk_size = MINIMUM_CHUNK_SIZE
+    MessageClass = mimetools.Message
+  
+    def __init__(self, socket, address, server):
+        pywsgi.WSGIHandler.__init__(self, socket, address, server)
 
-    def handle_one_response(self):
-        start = time.time()
-        headers_set = []
-        headers_sent = []
+    def get_environ(self):
+        env = self.server.get_environ()
+        env['REQUEST_METHOD'] = self.command
+        env['SCRIPT_NAME'] = ''
 
-        wfile = self.wfile
-        result = None
-        use_chunked = [False]
-        length = [0]
-        status_code = [200]
+        if '?' in self.path:
+            path, query = self.path.split('?', 1)
+        else:
+            path, query = self.path, ''
+        env['PATH_INFO'] = unquote(path)
+        env['QUERY_STRING'] = query
 
-        def write(data, _writelines=wfile.writelines):
-            towrite = []
-            if not headers_set:
-                raise AssertionError("write() before start_response()")
-            elif not headers_sent:
-                status, response_headers = headers_set
-                headers_sent.append(1)
-                header_list = [header[0].lower() for header in response_headers]
-                towrite.append('%s %s\r\n' % (self.protocol_version, status))
-                for header in response_headers:
-                    towrite.append('%s: %s\r\n' % header)
+        if self.headers.typeheader is None:
+            env['CONTENT_TYPE'] = self.headers.type
+        else:
+            env['CONTENT_TYPE'] = self.headers.typeheader
 
-                # send Date header?
-                if 'date' not in header_list:
-                    towrite.append('Date: %s\r\n' % (format_date_time(time.time()),))
+        length = self.headers.getheader('content-length')
+        if length:
+            env['CONTENT_LENGTH'] = length
+        env['SERVER_PROTOCOL'] = 'HTTP/1.0'
 
-                client_conn = self.headers.get('Connection', '').lower()
-                send_keep_alive = False
-                if self.close_connection == 0 and \
-                   self.server.keepalive and (client_conn == 'keep-alive' or \
-                    (self.request_version == 'HTTP/1.1' and
-                     not client_conn == 'close')):
-                    # only send keep-alives back to clients that sent them,
-                    # it's redundant for 1.1 connections
-                    send_keep_alive = (client_conn == 'keep-alive')
-                    self.close_connection = 0
+        host, port = self.socket.getsockname()
+        env['SERVER_NAME'] = host
+        env['SERVER_PORT'] = str(port)
+        env['REMOTE_ADDR'] = self.client_address[0]
+        env['GATEWAY_INTERFACE'] = 'CGI/1.1'
+
+        for header in self.headers.headers:
+            key, value = header.split(':', 1)
+            key = key.replace('-', '_').upper()
+            if key not in ('CONTENT_TYPE', 'CONTENT_LENGTH'):
+                value = value.strip()
+                key = 'HTTP_' + key
+                if key in env:
+                    if 'COOKIE' in key:
+                        env[key] += '; ' + value
+                    else:
+                        env[key] += ',' + value
                 else:
-                    self.close_connection = 1
+                    env[key] = value
 
-                if 'content-length' not in header_list:
-                    if self.request_version == 'HTTP/1.1':
-                        use_chunked[0] = True
-                        towrite.append('Transfer-Encoding: chunked\r\n')
-                    elif 'content-length' not in header_list:
-                        # client is 1.0 and therefore must read to EOF
-                        self.close_connection = 1
+        if env.get('HTTP_EXPECT') == '100-continue':
+            wfile = self.wfile
+        else:
+            wfile = None
+        chunked = env.get('HTTP_TRANSFER_ENCODING', '').lower() == 'chunked'
+        self.wsgi_input = Input(self.rfile, self.content_length, wfile=wfile, chunked_input=chunked)
+        env['wsgi.input'] = self.wsgi_input
+        env['gevent.socket'] = self.socket
+        return env
 
-                if self.close_connection:
-                    towrite.append('Connection: close\r\n')
-                elif send_keep_alive:
-                    towrite.append('Connection: keep-alive\r\n')
-                towrite.append('\r\n')
-                # end of header writing
 
-            if use_chunked[0]:
-                ## Write the chunked encoding
-                towrite.append("%x\r\n%s\r\n" % (len(data), data))
-            else:
-                towrite.append(data)
-            try:
-                _writelines(towrite)
-                length[0] = length[0] + sum(map(len, towrite))
-            except UnicodeEncodeError:
-                self.server.log_message("Encountered non-ascii unicode while attempting to write wsgi response: %r" % [x for x in towrite if isinstance(x, unicode)])
-                self.server.log_message(traceback.format_exc())
-                _writelines(
-                    ["HTTP/1.1 500 Internal Server Error\r\n",
-                    "Connection: close\r\n",
-                    "Content-type: text/plain\r\n",
-                    "Content-length: 98\r\n",
-                    "Date: %s\r\n" % format_date_time(time.time()),
-                    "\r\n",
-                    ("Internal Server Error: wsgi application passed "
-                     "a unicode object to the server instead of a string.")])
 
-        def start_response(status, response_headers, exc_info=None):
-            status_code[0] = status.split()[0]
-            if exc_info:
-                try:
-                    if headers_sent:
-                        # Re-raise original exception if headers sent
-                        raise exc_info[0], exc_info[1], exc_info[2]
-                finally:
-                    # Avoid dangling circular ref
-                    exc_info = None
-
-            capitalized_headers = [('-'.join([x.capitalize()
-                                              for x in key.split('-')]), value)
-                                   for key, value in response_headers]
-
-            headers_set[:] = [status, capitalized_headers]
-            return write
-
-        try:
-            try:
-                result = self.application(self.environ, start_response)
-                if (isinstance(result, _AlreadyHandled)
-                    or isinstance(getattr(result, '_obj', None), _AlreadyHandled)):
-                    self.close_connection = 1
-                    return
-                try:
-                    if not headers_sent and hasattr(result, '__len__') and \
-                            'Content-Length' not in [h for h, _v in headers_set[1]]:
-                        headers_set[1].append(('Content-Length', str(sum(map(len, result)))))
-                except IndexError:
-                    # headers already sent in http stream, just close now
-                    self.close_connection = 1
-                    return
-                towrite = []
-                towrite_size = 0
-                just_written_size = 0
-                # if result is None, just close now
-                if not result:
-                    self.close_connection = 1
-                    return
-                for data in result:
-                    towrite.append(data)
-                    towrite_size += len(data)
-                    if towrite_size >= self.minimum_chunk_size:
-                        write(''.join(towrite))
-                        towrite = []
-                        just_written_size = towrite_size
-                        towrite_size = 0
-                if towrite:
-                    just_written_size = towrite_size
-                    write(''.join(towrite))
-                if not headers_sent or (use_chunked[0] and just_written_size):
-                    write('')
-            except Exception:
-                self.close_connection = 1
-                exc = traceback.format_exc()
-                self.server.log_message(exc)
-                if not headers_set:
-                    start_response("500 Internal Server Error",
-                                   [('Content-type', 'text/plain'),
-                                    ('Content-length', len(exc))])
-                    write(exc)
-        finally:
-            if hasattr(result, 'close'):
-                result.close()
-            if (self.environ['eventlet.input'].chunked_input or
-                    self.environ['eventlet.input'].position \
-                    < self.environ['eventlet.input'].content_length):
-                ## Read and discard body if there was no pending 100-continue
-                if not self.environ['eventlet.input'].wfile:
-                    while self.environ['eventlet.input'].read(MINIMUM_CHUNK_SIZE):
-                        pass
-            finish = time.time()
-
-            for hook, args, kwargs in self.environ['eventlet.posthooks']:
-                hook(self.environ, *args, **kwargs)
-
-            self.server.log_message(self.server.log_format % dict(
-                client_ip=self.get_client_ip(),
-                date_time=self.log_date_time_string(),
-                request_line=self.requestline,
-                status_code=status_code[0],
-                body_length=length[0],
-                wall_seconds=finish - start))
-'''
+class WSGIServer(pywsgi.WSGIServer):
+    def __init__(self, listener, application=None, backlog=None, spawn='default', log='default', handler_class=None, environ=None, **ssl_args):
+        pywsgi.WSGIServer.__init__(self, listener, application, backlog, spawn, log, handler_class, environ, **ssl_args)
 
 
 class Server(object):
@@ -263,58 +151,52 @@ class Server(object):
             self.status = False
             raise
 
-
         self.log.info("http - start %s" % str(self.addr))
-        server = wsgi.WSGIServer(self.addr, self.handle)
-        server.serve_forever()
-        '''
         try:
-            self.log.info("http - start %s" % str(self.addr))
-            self.sock = eventlet.listen(self.addr)
-        except (KeyboardInterrupt, eventlet.StopServe):
+            self.http_server = WSGIServer(self.addr, self.handle, log=self.log, handler_class=WSGIHandler)
+            self.http_server.serve_forever()
+        except:
             self.status = False
             raise
-        server(self.sock, self.handle, protocol=HttpProtocol, log=self.log)
-        '''
-        self.status = False
 
-    def handle_websocket(self, environ, start_response):
-        wsock = websocket.WebSocketWSGI(self._handle_websocket)
-        wsock(environ, start_response)
-
-    def _handle_websocket(self, ws):
-        client = fsclients.WebSocketClient(ws)
-        self.clients.add(client)
-        self.log.info("client added %s (%s)" % (str(client), client.host))
-        self.log.info("client %s filter: %s" % (str(client.get_uuid()), str(client.get_filter())))
-        last_event = datetime.datetime.now()
-        try:
-            while self.status:
-                try:
-                    now = datetime.datetime.now()
-                    if (now-last_event).seconds >= CHECK_INACTIVITY:
-                        self.log.debug("ping client %s" % str(client))
-                        client.send(fsevents.PingEvent())
-                        last_event = now
-                        gevent.sleep(0.02)
-                        continue
-                    ev = client.get_event()
-                    last_event = datetime.datetime.now()
-                    client.send(ev)
-                except gevent.queue.Empty:
-                    gevent.sleep(0.02)
-                except socket.error, e:
-                    self.log.warn("client %s socket error: %s" % (str(client), str(e)))
-                    return
-                except Exception, err:
-                    self.log.error(err.message)
-                    [ self.log.error(line) for line in traceback.format_exc().splitlines() ]
-                    return
-        finally:
-            self.clients.remove(client)
-            self.log.info("client deleted %s (%s)" % (str(client), client.host))
+#    def handle_websocket(self, environ, start_response):
+#        sock = environ['gevent.socket']
+#        rfile = environ['wsgi.input'].rfile
+#        wfile = environ['wsgi.input'].wfile
+#        ws = WebSocket(rfile, wfile, sock, environ)
+#        client = fsclients.WebSocketClient(ws, environ)
+#        self.clients.add(client)
+#        self.log.info("client added %s (%s)" % (str(client), client.host))
+#        self.log.info("client %s filter: %s" % (str(client.get_uuid()), str(client.get_filter())))
+#        last_event = datetime.datetime.now()
+#        try:
+#            while self.status:
+#                try:
+#                    now = datetime.datetime.now()
+#                    if (now-last_event).seconds >= CHECK_INACTIVITY:
+#                        self.log.debug("ping client %s" % str(client))
+#                        client.send(fsevents.PingEvent())
+#                        last_event = now
+#                        gevent.sleep(0.02)
+#                        continue
+#                    ev = client.get_event()
+#                    last_event = datetime.datetime.now()
+#                    client.send(ev)
+#                except gevent.queue.Empty:
+#                    gevent.sleep(0.02)
+#                except socket.error, e:
+#                    self.log.warn("client %s socket error: %s" % (str(client), str(e)))
+#                    return
+#                except Exception, err:
+#                    self.log.error(err.message)
+#                    [ self.log.error(line) for line in traceback.format_exc().splitlines() ]
+#                    return
+#        finally:
+#            self.clients.remove(client)
+#            self.log.info("client deleted %s (%s)" % (str(client), client.host))
 
     def handle_stream(self, environ, start_response):
+        print "handle_stream"
         client = fsclients.HttpStreamClient(environ)
         self.clients.add(client)
         self.log.info("client added %s (%s)" % (str(client), client.host))
@@ -366,10 +248,10 @@ class Server(object):
         # FIXME get/set ClientFilter from query string
         self.log.debug(str(environ))
         # websocket :
-        if environ['PATH_INFO'] == '/websock':
-            return self.handle_websocket(environ, start_response)
+        #if environ['PATH_INFO'] == '/websock':
+        #    return self.handle_websocket(environ, start_response)
         # http stream :
-        elif environ['PATH_INFO'] == '/stream':
+        if environ['PATH_INFO'] == '/stream':
             return self.handle_stream(environ, start_response)
         # http status :
         elif environ['PATH_INFO'] == '/status':
