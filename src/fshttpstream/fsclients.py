@@ -97,4 +97,4 @@ class HttpStreamClient(Client):
         self.__sockfd.flush()
 
     def __send_headers(self):
-        self.__sock.sendall('"HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: -1\r\nDate: Tue, 01 Jan 1970 00:00:00 GMT\r\nConnection: keep-alive\r\nPragma: no-cache\r\n\r\n')
+        self.__sock.sendall('HTTP/1.1 200 OK\r\nContent-Type: text/plain\r\nContent-Length: -1\r\nDate: Tue, 01 Jan 1970 00:00:00 GMT\r\nConnection: keep-alive\r\nPragma: no-cache\r\n\r\n')
