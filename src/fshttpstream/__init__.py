@@ -14,9 +14,10 @@ __maintainer_email__ = 'michael.ricordeau@gmail.com'
 
 __licence__ = 'MPL 1.1'
 
-__all__ = ['client',
+__all__ = ['server',
+	   'client',
            'queueinboundsocket',
            'stderr2log',
            'websocketserver',
-           'fshttpstream']
+          ]
 

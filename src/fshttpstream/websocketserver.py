@@ -5,7 +5,7 @@ Websocket server class
 from telephonie.utils.logger import StdoutLogger
 from gevent import pywsgi
 from geventwebsocket.handler import WebSocketHandler
-from fshttpstream import stderr2log
+import fshttpstream.stderr2log as stderr2log
 import os
 
 

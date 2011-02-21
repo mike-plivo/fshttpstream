@@ -46,7 +46,7 @@ class QueueInboundEventSocket(InboundEventSocket):
                 self.log.info("QueueInboundEventSocket connected")
                 self.serve_forever()
             except ConnectError, e:
-                self.log.error("QueueInboundEventSocket ConnectError: %s" % e.message)
+                self.log.error("QueueInboundEventSocket ConnectError: %s" % str(e))
             except (SystemExit, KeyboardInterrupt): 
                 break
             self.log.error("QueueInboundEventSocket closed, try to reconnect ...")

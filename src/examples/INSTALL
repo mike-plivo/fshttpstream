@@ -1,0 +1,4 @@
+- install fshttpstream package
+- run server : python myserver.py (adjust settings if needed)
+- set mydomain with your webserver domain in jquerytest.html and test.html
+- cp all html and js files into your webserver repository
