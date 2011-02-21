@@ -1,0 +1,3 @@
+fshttpstream package
+
+Websocket proxy server to push Freeswitch events to websocket client.
