@@ -1,4 +1,6 @@
 - install fshttpstream package
 - run server : python myserver.py (adjust settings if needed)
-- set mydomain with your webserver domain in jquerytest.html and test.html
-- cp all html and js files into your webserver repository
+- set myhostname with your webserver domain in jquerytest.html and test.html
+- copy all html and js files into your webserver repository
+
+For web browsers not supporting websocket, use https://github.com/gimite/web-socket-js .
