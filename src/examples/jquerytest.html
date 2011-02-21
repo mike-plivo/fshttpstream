@@ -1,37 +1,22 @@
-<!DOCTYPE html>
 <html>
 <head>
-  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.4.3/jquery.min.js"></script>
-  <script src="fshttpstream.js"></script>
+  <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4.4/jquery.min.js"></script>
+  <script src="jquery.fshttpstream.js"></script>
   <script>
-    /* HOST/PORT
-    host and port to be used when connecting to fshttpstream server example
-
-    NOTE : browsers deny cross-domain !!!
-    If your browser contact fshttpstream server by http://mydomain.com:8081/
-    you need to set : 
-        var host = "mydomain.com";
-        var port = "8081";
-    */ 
-    var host = "127.0.0.1";
-    var port = "8081";
-
-
-    /* FILTERS
-    make a filter (a filter IN) for this client :
-      drop all events except those matching regexp list
-    */
-    var filters = [];
-    // for example, uncomment the line below to only catch RE_SCHEDULE events from freeswitch
-    //var filters = ["Event-Name: RE_SCHEDULE(.*)Event-Calling-Function: switch_scheduler_execute"];
-
-
-    /* CALLBACKS
-    prepare callbacks functions for onopen, onmessage, onclose events 
-    */
+    // fshttpstream server host 
+    // WARNING : the host name should be the same as the URL that the client will open on the web server
+    //           (cross domain with websocket are denied)
+    var host = "myhostname";
+    // fshttpstream server port
+    var port = 8000;
 
     function onMessage(fsobj, data) {
-      ev = jQuery.parseJSON(data);
+      try {
+        ev = jQuery.parseJSON(data);
+      } catch(e) {
+        alert(e + " " + data);
+        return;
+      }
       action = ev['Event-Name'];
       if (!action) {
         return;
@@ -44,7 +29,7 @@
       $("#events").append("<p style=\"border-left: 5px solid #865d23; padding-left:2px; display:block; background-color:#e1c6b0; color:#4a301b; width:80%; margin-top:0; padding: 5px; font-style: italic;\">" + data + "</p>");
       $("#events").append("</div>");
       $("#events").scrollTop($("#events")[0].scrollHeight);
-    }; 
+    };
 
     function onOpen(fsobj) {
       $("#status").html("Connection UP - " + fsobj.getAddress());
@@ -56,12 +41,17 @@
 
 
     /* CONNECT
-    connect when dom is ready 
+    connect when dom is ready
     */
     $(document).ready(function() {
-      var fs = new FSHttpStream(host, port, onMessage, onOpen, onClose, filters);
-      $("#fstitle").html('Freeswitch Events - ' + fs.getStringMode());
-      $("#filter").html("Filter : "+fs.getStringFilters());
+      $(document).fshttpstream({"host": host, 
+                                "port": port, 
+                                "on_message": onMessage, 
+                                "on_open": onOpen, 
+                                "on_close": onClose, 
+                                "filters": ["Event-Name: (HEARTBEAT|MESSAGE_WAITING)"]
+                              });
+      $("#fstitle").html('Freeswitch Events - ' + $(document).fshttpstream.fs.getStringMode());
     });
 
   </script>
@@ -71,7 +61,6 @@
   <h3 id="fstitle">Freeswitch Events</h3>
   <hr/>
   <h4 id="status">Connection DOWN</h4>
-  <h4 id="filter"></h4>
   <hr/>
   <div id="events" style="overflow:auto; width:90%; height:400px; margin-left:1%;"></div>
 </body>
