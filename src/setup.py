@@ -5,11 +5,6 @@ import os.path
 from setuptools import find_packages, setup
 from fshttpstream import (__version__, __author__, __author_email__, __maintainer__, __maintainer_email__, __licence__)
 
-if os.path.isdir('examples'):
-  for script in glob.glob('fshttpstream/javascript/*.js'):
-      js = os.path.basename(script)
-      shutil.copyfile(script, 'examples/'+js)
-
 setup(name='fshttpstream',
       version=__version__,
       description='Websocket proxy server to send freeswitch events to websocket client.',
@@ -21,7 +16,10 @@ setup(name='fshttpstream',
       platforms=['linux'],
       long_description='Websocket proxy server to send freeswitch events to websocket client.',
       packages=['fshttpstream'],
-      data_files=[('/usr/local/share/fshttpstream/javascript', glob.glob('fshttpstream/javascript/*.js'))],
+      include_package_data = True,
+      data_files=[('share/javascript', glob.glob('fshttpstream/javascript/*.js')),
+                  ('share/examples', glob.glob('fshttpstream/examples/*')),
+                 ],
       license=__licence__,
       install_requires=['telephonie', 'gevent-websocket'],
       zip_safe=False,
