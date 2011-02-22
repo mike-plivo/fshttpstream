@@ -15,7 +15,7 @@ class _StderrRedirect(object):
         for line in msg.splitlines():
             line = line.strip()
             if line:
-                self.log.error(line)
+                self.log.info(line)
 
     def flush(self):
         return
