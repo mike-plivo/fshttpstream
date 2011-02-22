@@ -1,7 +1,13 @@
 #!/usr/bin/env python
-
+import glob
+import shutil
+import os.path
 from setuptools import find_packages, setup
 from fshttpstream import (__version__, __author__, __author_email__, __maintainer__, __maintainer_email__, __licence__)
+
+for script in glob.glob('fshttpstream/javascript/*.js'):
+    js = os.path.basename(script)
+    shutil.copyfile(script, 'examples/'+js)
 
 setup(name='fshttpstream',
       version=__version__,
@@ -14,21 +20,20 @@ setup(name='fshttpstream',
       platforms=['linux'],
       long_description='Websocket proxy server to send freeswitch events to websocket client.',
       packages=['fshttpstream'],
-      package_data={'fshttpstream':['javascript/*.js'],
-                   },
+      data_files=('/usr/local/share/fshttpstream/javascript', glob.glob('fshttpstream/javascript/*.js')),
       license=__licence__,
       install_requires=['telephonie', 'gevent-websocket'],
       zip_safe=False,
       classifiers=[
         "License :: OSI Approved :: Mozilla Public License 1.1 (MPL 1.1)",
         "Programming Language :: Python",
-        "Programming Language :: Javascript",
         "Operating System :: POSIX",
         "Topic :: Internet",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Communications",
         "Topic :: Multimedia",
         "Environment :: Web Environment",
+        "Programming Language :: JavaScript",
         "Intended Audience :: Developers",
         "Intended Audience :: Telecommunications Industry",
         "Development Status :: 4 - Beta"]
