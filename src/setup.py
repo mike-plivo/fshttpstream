@@ -5,9 +5,10 @@ import os.path
 from setuptools import find_packages, setup
 from fshttpstream import (__version__, __author__, __author_email__, __maintainer__, __maintainer_email__, __licence__)
 
-for script in glob.glob('fshttpstream/javascript/*.js'):
-    js = os.path.basename(script)
-    shutil.copyfile(script, 'examples/'+js)
+if os.path.isdir('examples'):
+  for script in glob.glob('fshttpstream/javascript/*.js'):
+      js = os.path.basename(script)
+      shutil.copyfile(script, 'examples/'+js)
 
 setup(name='fshttpstream',
       version=__version__,
