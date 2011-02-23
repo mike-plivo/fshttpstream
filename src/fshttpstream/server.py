@@ -16,7 +16,6 @@ class Server(websocketserver.WebsocketServer):
     Freeswitch websocket server.
     """
     def __init__(self, wshost, wsport, fshost, fsport, fspassword, fsfilter='ALL', log=None):
-        websocketserver.WebsocketServer.__init__(self, wshost, wsport, log)
         self.fshost = fshost
         self.fsport = fsport
         self.fspassword = fspassword
@@ -24,11 +23,16 @@ class Server(websocketserver.WebsocketServer):
         self._inbound_process = None
         self._dispatch_process = None
         self.ws_clients = set()
+        if not log:
+            self.log = StdoutLogger()
+        else:
+            self.log = log
+        websocketserver.WebsocketServer.__init__(self, wshost, wsport, log)
         self.inbound_socket = queueinboundsocket.QueueInboundEventSocket(self.fshost, 
                                                                          self.fsport, 
                                                                          self.fspassword, 
-                                                                         self.fsfilter, 
-                                                                         log=log)
+                                                                         filter=self.fsfilter, 
+                                                                         log=self.log)
 
     def start(self):
         """
@@ -114,7 +118,6 @@ class Server(websocketserver.WebsocketServer):
 
 
 if __name__ == '__main__':
-    log = StdoutLogger()
-    fs = Server('0.0.0.0', 8000, '127.0.0.1', 8021, 'ClueCon', 'ALL', log)
+    fs = Server('0.0.0.0', 8000, '127.0.0.1', 8021, 'ClueCon', 'ALL')
     fs.start()
 

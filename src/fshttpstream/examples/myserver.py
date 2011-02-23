@@ -2,7 +2,7 @@ from fshttpstream import server
 
 # freeswitch eventsocket host/port/password/event filter to connect to
 FS_HOST = '127.0.0.1'
-FS_PORT = 8000
+FS_PORT = 8021
 FS_PASSWORD = 'ClueCon'
 FS_FILTER = 'ALL'
 
