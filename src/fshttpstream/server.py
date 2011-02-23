@@ -11,7 +11,7 @@ import fshttpstream.client as client
 import fshttpstream.websocketserver as websocketserver
 
 
-class FSWebsocketServer(websocketserver.WebsocketServer):
+class Server(websocketserver.WebsocketServer):
     """
     Freeswitch websocket server.
     """
@@ -115,6 +115,6 @@ class FSWebsocketServer(websocketserver.WebsocketServer):
 
 if __name__ == '__main__':
     log = StdoutLogger()
-    fs = FSWebsocketServer('0.0.0.0', 8000, '127.0.0.1', 8021, 'ClueCon', 'ALL', log)
+    fs = Server('0.0.0.0', 8000, '127.0.0.1', 8021, 'ClueCon', 'ALL', log)
     fs.start()
 
