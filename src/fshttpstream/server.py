@@ -36,7 +36,7 @@ class Server(websocketserver.WebsocketServer):
         """
         self._inbound_process = spawn(self.inbound_socket.start)
         self._dispatch_process = spawn(self.dispatch_events)
-        super(FSWebsocketServer, self).start()
+        super(Server, self).start()
         self._dispatch_process.kill()
         self._inbound_process.kill()
 

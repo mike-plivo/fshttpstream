@@ -11,7 +11,7 @@ WS_HOST = '0.0.0.0'
 WS_PORT = 8000
 
 
-myserver = server.FSWebsocketServer(WS_HOST, WS_PORT, 
-				    FS_HOST, FS_PORT, FS_PASSWORD, 
-                                    fsfilter=FS_FILTER)
+myserver = server.Server(WS_HOST, WS_PORT, 
+                         FS_HOST, FS_PORT, FS_PASSWORD, 
+                         fsfilter=FS_FILTER)
 myserver.start()
