@@ -15,7 +15,8 @@ class Server(websocketserver.WebsocketServer):
     """
     Freeswitch websocket server.
     """
-    def __init__(self, wshost, wsport, fshost, fsport, fspassword, fsfilter='ALL', log=None):
+    def __init__(self, wshost, wsport, fshost, fsport, fspassword, fsfilter='ALL', 
+                 log=None, inboundsocket_class=queueinboundsocket.QueueInboundEventSocket):
         self.fshost = fshost
         self.fsport = fsport
         self.fspassword = fspassword
@@ -28,11 +29,11 @@ class Server(websocketserver.WebsocketServer):
         else:
             self.log = log
         websocketserver.WebsocketServer.__init__(self, wshost, wsport, log)
-        self.inbound_socket = queueinboundsocket.QueueInboundEventSocket(self.fshost, 
-                                                                         self.fsport, 
-                                                                         self.fspassword, 
-                                                                         filter=self.fsfilter, 
-                                                                         log=self.log)
+        self.inbound_socket = inboundsocket_class(self.fshost, 
+                                                  self.fsport, 
+                                                  self.fspassword, 
+                                                  filter=self.fsfilter, 
+                                                  log=self.log)
 
     def start(self):
         """
