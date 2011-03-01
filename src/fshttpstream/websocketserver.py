@@ -37,16 +37,24 @@ class WebsocketServer(object):
         self.log.info("Start Websocket server %s:%d" % (self.host, self.port))
         try:
             self.running = True
+            self.ws_server.start()
+        except (SystemExit, KeyboardInterrupt): 
+            pass
+
+    def serve_forever(self):
+        """
+        Start forever websocket server.
+        """
+        self.log.info("Start Websocket server %s:%d" % (self.host, self.port))
+        try:
+            self.running = True
             self.ws_server.serve_forever()
         except (SystemExit, KeyboardInterrupt): 
             pass
-        self.running = False
-        stderr2log.restore()
-        self.log.info("Websocket server terminated")
 
     def application(self, environ, start_response):
         """
-        Main application when clients are connecting to server.
+        Main application when wsgi clients are connecting to wsgi server.
 
         Must be overridden by subclass.
         """

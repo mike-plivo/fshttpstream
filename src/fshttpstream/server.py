@@ -42,8 +42,14 @@ class Server(websocketserver.WebsocketServer):
         self._inbound_process = spawn(self.inbound_socket.start)
         self._dispatch_process = spawn(self.dispatch_events)
         super(Server, self).start()
-        self._dispatch_process.kill()
-        self._inbound_process.kill()
+
+    def serve_forever(self):
+        """
+        Start forever inbound connection, dispatcher and listen for websocket clients.
+        """
+        self._inbound_process = spawn(self.inbound_socket.start)
+        self._dispatch_process = spawn(self.dispatch_events)
+        super(Server, self).serve_forever()
 
     def dispatch_events(self):
         """
@@ -66,7 +72,7 @@ class Server(websocketserver.WebsocketServer):
 
     def application(self, environ, start_response):
         """
-        Main application when clients are connecting to server.
+        Main application when http/websocket clients are connecting to server.
         """
         if environ["PATH_INFO"] == '/websock':
             ws = None
